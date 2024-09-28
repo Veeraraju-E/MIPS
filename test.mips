@@ -1,7 +1,6 @@
 .data
     num1: .word 10
     num2: .word 20
-
 .text
     lw $t0, num1
     lw $t1, num2

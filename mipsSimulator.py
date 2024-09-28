@@ -1,4 +1,11 @@
 import csv
+from numpy import random
+import os
+
+labelPool = {}
+encodedCode = ""
+dataSectionencoded = ""
+textSectionencoded = ""
 
 class handleTextSection:
 
@@ -38,6 +45,7 @@ class handleTextSection:
     }
 
     __instructionOpCode = {
+        "addi":"001000",
         "add":"000000",
         "sub":"000000",
         "and":"000000",
@@ -46,7 +54,7 @@ class handleTextSection:
         "or":"000000",
         "lw":"100011",
         "sw":"101011",
-        "j":"0010000"
+        "j":"000010"
     }
 
     __instructionFunctionMode = {
@@ -69,26 +77,21 @@ class handleTextSection:
         "j":"J"
     }
 
-    def compileInstruction(line):
+    def encodeInstruction(line):
         try:
             instructionType = handleTextSection.__instructionType[line[0]]
-
             if instructionType == "R":
                 return handleTextSection.__handleRType(line[0],line[3],line[2].replace(',',''),line[1].replace(',',''))
-            
             elif instructionType == "I":
-                return -1
-            
+                return "00000000000000000000000000000000"
             elif instructionType == "B":
-                return -1
-
+                return "00000000000000000000000000000000"
             elif instructionType == "J":
-                return -1
+                return "00000000000000000000000000000000"
         except:
-            return -1
+            return "Invalid Instruction"
     
     def __encodeRegister(register):
-
         try:
             return handleTextSection.__registerAddressMap[register]
         except:
@@ -98,20 +101,14 @@ class handleTextSection:
 
         opCode = handleTextSection.__instructionOpCode[mnemonic]
         functionMode = handleTextSection.__instructionFunctionMode[mnemonic]
-
-
         rs = handleTextSection.__encodeRegister(rs)
         rt = handleTextSection.__encodeRegister(rt)
         rd = handleTextSection.__encodeRegister(rd)
 
         if rs == -1 or rt == -1 or rd == -1:
-            print("issue")
-            return -1
+            return "One of the registers is invalid"
         
-        print(opCode+rs+rt+rd+"00000"+functionMode)
         return opCode+rs+rt+rd+"00000"+functionMode
-
-        
 
     def __handleIType(mnemonic,rs,rt,immediate):
         pass
@@ -125,23 +122,52 @@ class handleTextSection:
 
 class handleDataSection:
 
-    def compileVariable(line):
-        pass
+    def encodeVariable(line):
 
+        if line[1] != '.word':
+            os.remove('./data_memory.txt')
+            return "Invalid Data Type "+line[1]
+        
+        label = line[0].replace(':','')
+        value = int(line[2])
+
+        if  label in labelPool.keys():
+            os.remove('./data_memory.txt')
+            return "Can not redefine "+label
+        
+        message = handleDataSection.__assignMemory(label,value)
+
+        return message
+        
     def __assignMemory(label,value):
-        pass
+        try:
 
+            value = format(value,'032b')
+            address = random.randint(0,2**30)
+            address = format(address,'032b')
 
-compiledCode = ""
-dataSectionCompiled = ""
-textSectionCompiled = ""
+            with open('data_memory.txt','a') as file:
+                file.write(address+" "+value+'\n')
+            
+            labelPool[label] = value
+            return 1
+        
+        except:
+            os.remove('./data_memory.txt')
+            return "Couldn't allocate enough space in the memory"
 
-with open('./test.mips','r') as file:
+with open('./t','r') as file:
 
     mipsCode = csv.reader(file,delimiter=' ')
     dataSectionEncountered = False
 
-    for line in mipsCode:
+    try:
+        if os.path.exists('./data_memory.txt'):
+            os.remove('./data_memory.txt')
+    except:
+        print("System Error. Retry Again")
+
+    for linenumber,line in enumerate(mipsCode):
 
         emptyStringCount = line.count('')
         for i in range(emptyStringCount):
@@ -156,16 +182,18 @@ with open('./test.mips','r') as file:
         elif len(line) == 1 and line[0] == '.text':
             dataSectionEncountered = False
 
-        elif len(line) == 1:
-            continue
+        elif len(line) == 1 and line[0].count(':') == 0:
+            print("Error at line "+str(linenumber+1))
 
         elif dataSectionEncountered == True:
-            handleDataSection.compileVariable(line)
+            message=handleDataSection.encodeVariable(line)
+
+            if message != 1:
+                 print("Error at line "+str(linenumber+1)+" "+message)
         
         else:
-            handleTextSection.compileInstruction(line)
-
-            
-
-
-        
+            encodedInstruction = handleTextSection.encodeInstruction(line)
+            if len(encodedInstruction) != 32:
+                print("Error at line "+str(linenumber+1)+" "+encodedInstruction)
+            else:
+                textSectionencoded+=encodedInstruction
