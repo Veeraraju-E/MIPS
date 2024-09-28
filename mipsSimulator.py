@@ -90,9 +90,9 @@ class handleTextSection:
                     addr_type = 1
                 return handleTextSection.__handleIType(line[0], line[2], line[1].replace(',',''), addr_type)
             elif instructionType == "B":
-                return "00000000000000000000000000000000"
+                return handleTextSection.__handleBranchType(line[1].replace(',',''), line[2].replace(',',''), line[3])
             elif instructionType == "J":
-                return "00000000000000000000000000000000"
+                return handleTextSection.__handleJumpType(line[1])
         except:
             return "Invalid Instruction"
     
@@ -157,10 +157,19 @@ class handleTextSection:
         return opCode + rs + rt + address
 
     def __handleBranchType(rs,rt,label):
-        pass
+
+        opCode = handleTextSection.__instructionOpCode["beq"]
+        rs = handleTextSection.__encodeRegister(rs)
+        rt = handleTextSection.__encodeRegister(rt)
+        address = labelPool.get(label, None)        # depends on how data section is to handled
+
+        return opCode + rs + rt + address
 
     def __handleJumpType(label):
-        pass
+        opCode = handleTextSection.__instructionOpCode["j"]
+        address = labelPool.get(label, None)        # depends on how data section is to handled
+        
+        return opCode + address
     
 
 class handleDataSection:
