@@ -70,8 +70,8 @@ class handleTextSection:
         "sub":"R",
         "and":"R",
         "slt":"R",
-        "beq":"B",
         "or":"R",
+        "beq":"B",
         "lw":"I",
         "sw":"I",
         "j":"J"
@@ -79,11 +79,16 @@ class handleTextSection:
 
     def encodeInstruction(line):
         try:
+            print(line)
             instructionType = handleTextSection.__instructionType[line[0]]
             if instructionType == "R":
                 return handleTextSection.__handleRType(line[0],line[3],line[2].replace(',',''),line[1].replace(',',''))
             elif instructionType == "I":
-                return "00000000000000000000000000000000"
+                # lw and sw only , line = ['lw', '$t2,', 'num'] or line = ['lw', '$t2,', '100($t0)']
+                addr_type = 0
+                if '$' in line[2]:  # stronger condition?
+                    addr_type = 1
+                return handleTextSection.__handleIType(line[0], line[2], line[1].replace(',',''), addr_type)
             elif instructionType == "B":
                 return "00000000000000000000000000000000"
             elif instructionType == "J":
@@ -110,8 +115,46 @@ class handleTextSection:
         
         return opCode+rs+rt+rd+"00000"+functionMode
 
-    def __handleIType(mnemonic,rs,rt,immediate):
-        pass
+    def __handleIType(mnemonic,rs,rt, addr_type):
+        """
+        :param mnemonic: lw/sw
+        :param rs: $t0 etc
+        :param rt: $t0 etc
+        :param addr_type: a flag to check which type of loading or storing
+            (based on labels in data section or on register values + offets)
+            addr_type = 1 => lw $t0, num; rs = num, rt = $t0
+            addr_type = 0 => lw $t0, 100($t2); rs = 100($t2), rt = $t0
+        :return 32-bit instruction
+        """
+        opCode = handleTextSection.__instructionOpCode[mnemonic]
+        rt = handleTextSection.__encodeRegister(rt)
+
+        address = ""
+        label = ""
+        if not addr_type:
+            address = labelPool.get(rs, None) # 16-bit address, default None
+            label = rs
+            rs = "00000"
+        else:
+            rs = rs.replace('(',',').replace(')','')
+            rs = rs.split(',')
+            # print(rs)
+            address = bin(int(rs[0])).replace('0b','')
+            while len(address) < 16:
+                address = '0' + address
+            rs = rs[1]
+            rs = handleTextSection.__encodeRegister(rs)
+
+        if not address:
+            return f"Label not found. Please declare {label}."
+        
+        elif len(address) > 16:
+            return "Address too big."
+        
+        if rs == -1 or rt == -1:
+            return "One of the registers is invalid"
+        
+        return opCode + rs + rt + address
 
     def __handleBranchType(rs,rt,label):
         pass
@@ -131,9 +174,9 @@ class handleDataSection:
         label = line[0].replace(':','')
         value = int(line[2])
 
-        if  label in labelPool.keys():
+        if label in labelPool.keys():
             os.remove('./data_memory.txt')
-            return "Can not redefine "+label
+            return "Can not redefine " + label
         
         message = handleDataSection.__assignMemory(label,value)
 
@@ -156,7 +199,7 @@ class handleDataSection:
             os.remove('./data_memory.txt')
             return "Couldn't allocate enough space in the memory"
 
-with open('./t','r') as file:
+with open('./test.mips','r') as file:
 
     mipsCode = csv.reader(file,delimiter=' ')
     dataSectionEncountered = False
@@ -183,17 +226,17 @@ with open('./t','r') as file:
             dataSectionEncountered = False
 
         elif len(line) == 1 and line[0].count(':') == 0:
-            print("Error at line "+str(linenumber+1))
+            print("Error at line " + str(linenumber+1))
 
         elif dataSectionEncountered == True:
             message=handleDataSection.encodeVariable(line)
 
             if message != 1:
-                 print("Error at line "+str(linenumber+1)+" "+message)
+                 print("Error at line " + str(linenumber+1) + " " + message)
         
         else:
             encodedInstruction = handleTextSection.encodeInstruction(line)
             if len(encodedInstruction) != 32:
-                print("Error at line "+str(linenumber+1)+" "+encodedInstruction)
+                print("Error at line " + str(linenumber+1) + " " + encodedInstruction)
             else:
-                textSectionencoded+=encodedInstruction
+                textSectionencoded += encodedInstruction
