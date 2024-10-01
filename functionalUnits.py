@@ -1,9 +1,17 @@
 import csv
 
-'''
-4. ALU
-7. ALU Control
-'''
+"""
+This file contains class definitions of various Functional Units of the MIPS Procesor
+They are:
+1. Instruction Memory
+2. Data Memory
+3. Register File
+4. Alu Control Unit
+5. ALU (abstract class)
+6. Control Unit
+7. Program Counter
+8. other Units
+"""
 
 class InstructionMemory:
 
@@ -89,7 +97,6 @@ class registerFile:
             self.__registers[registerAddress] = writeValue
         else:
             return -1
-
 
 class controlUnit:
 
