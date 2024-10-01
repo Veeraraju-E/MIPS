@@ -259,8 +259,8 @@ with open('./test.mips','r') as file:
             if len(encodedInstruction) != 32:
                 print("Error at line " + str(linenumber+1) + " " + encodedInstruction)
             else:
-                machineCode += encodedInstruction
+                machineCode+= encodedInstruction
 
-with open("AssembledCode.mips","w") as file:
+with open("assembled_code.mips","w") as file:
 
     file.write(machineCode)
