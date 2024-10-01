@@ -84,7 +84,7 @@ class handleTextSection:
             print(line)
             instructionType = handleTextSection.__instructionType[line[0]]
             if instructionType == "R":
-                return handleTextSection.__handleRType(line[0],line[3],line[2].replace(',',''),line[1].replace(',',''))
+                return handleTextSection.__handleRType(line[0],line[2].replace(',',''),line[3].replace(',',''),line[1].replace(',',''))
             elif instructionType == "I":
                 # lw and sw only , line = ['lw', '$t2,', 'num'] or line = ['lw', '$t2,', '100($t0)']
                 addr_type = 0

@@ -25,7 +25,7 @@ class simulator:
             for word in dataFile:
                 self.dataMemory.writeMemory(word[0],word[1],True,self.controlUnit)
         
-        print(self.dataMemory.dataMem)
+        #print(self.dataMemory.dataMem)
             
     
     def __allocateMemoryInstruction(self,assembledCode):
@@ -43,10 +43,11 @@ class simulator:
 
             self.instructionMemory.loadInstruction(format(PC,'032b'),instruction)
             PC+=4
+
+        #print(self.instructionMemory.instructionMem)
         
-        return len(instruction)//32
+        return len(instructions)//32
         
-        print(self.instructionMemory.instructionMem)
     
     def simulate(self):
 
@@ -58,6 +59,8 @@ class simulator:
             instruction = self.instructionMemory.getInstruction(self.programCounter.getCurrentAddress())
             self.programCounter.nextAddress()
 
+            #print(i,instruction,self.programCounter.getCurrentAddress())
+
             self.controlUnit.setControlSignals(instruction[:6])
 
             signExtended = otherUnits.signExtend(instruction[16:])
@@ -67,17 +70,26 @@ class simulator:
             jumpAddress = otherUnits.concatPCAddress(leftShiftBy2,self.programCounter.getCurrentAddress())
 
             readData1,readData2 = self.registerFile.readData(instruction[6:11],instruction[11:16])
+
             writeRegister = instruction[11:16] if self.controlUnit.regDst == "0" else instruction[16:21]
             readData2 = readData2 if self.controlUnit.AluSrc == "0" else signExtended
 
             self.aluControlUnit.setSignal(self.controlUnit.AluOp,instruction[26:])
             result,zero = ALU.performOperation(self.aluControlUnit.signal,readData1,readData2)
+            
 
             readData = self.dataMemory.readMemory(result,self.controlUnit)
 
             writeData = result if self.controlUnit.memToReg == "0" else readData
             self.registerFile.writeData(writeRegister,writeData,self.controlUnit)
             self.programCounter.setCurrentAddress(branchAddress,jumpAddress,self.controlUnit,zero)
+
+
+sim = simulator()
+
+sim.simulate()
+
+sim.registerFile.printAllRegisters()
 
 
 

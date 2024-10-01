@@ -1,12 +1,9 @@
 .data
-    val1: .word 5
-    val2: .word 5
-    result: .word 0
+    num1: .word 10
+    num2: .word 20
 .text
-    lw $t0, val1
-    lw $t1, val2
-    addi $t2, $t0, 10
-    beq $t0, $t1, equal_case
-    sub $t3, $t0, $t1
-    sw  $t3, result
-    j end
+    add $t2, $t0, $t1
+    sub $t3, $t1, $t0
+    and $t4, $t0, $t1
+    or  $t5, $t0, $t1
+    slt $t6, $t0, $t1
