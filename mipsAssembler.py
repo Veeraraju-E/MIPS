@@ -136,7 +136,10 @@ class handleTextSection:
         address = ""
         label = ""
         if not addr_type:
-            address = labelPoolText.get(rs, "0"*16) # 16-bit address, default 16-bit 0s
+            if not labelPoolText.get(rs):
+                return -1   # label DNE
+            
+            address = labelPoolText.get(rs)
             label = rs
             rs = "00000"
         else:
@@ -165,14 +168,19 @@ class handleTextSection:
         opCode = handleTextSection.__instructionOpCode["beq"]
         rs = handleTextSection.__encodeRegister(rs)
         rt = handleTextSection.__encodeRegister(rt)
-        address = labelPoolText.get(label, "0"*16)  # 16-bit address, default 16-bit 0s
 
+        if not labelPoolData.get(label):
+            return -1   # label DNE
+        
+        address = labelPoolText.get(label)  # 16-bit address, default 16-bit 0s
         return opCode + rs + rt + address
 
     def __handleJumpType(label):
         opCode = handleTextSection.__instructionOpCode["j"]
-        address = labelPoolText.get(label, "0"*16)  # 16-bit address, default 16-bit 0s
-
+        if not labelPoolData.get(label):
+            return -1   # label DNE
+        
+        address = labelPoolText.get(label)  # 16-bit address, default 16-bit 0s
         return opCode + address
     
 
