@@ -7,9 +7,7 @@ labelPoolText = {}
 
 PC = "0"*32
 
-encodedCode = ""
-dataSectionEncoded = ""
-textSectionEncoded = ""
+machineCode = ""
 
 class handleTextSection:
 
@@ -261,4 +259,8 @@ with open('./test.mips','r') as file:
             if len(encodedInstruction) != 32:
                 print("Error at line " + str(linenumber+1) + " " + encodedInstruction)
             else:
-                textSectionEncoded += encodedInstruction
+                machineCode += encodedInstruction
+
+with open("AssembledCode.mips","w") as file:
+
+    file.write(machineCode)
