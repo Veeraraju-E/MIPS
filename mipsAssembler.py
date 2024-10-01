@@ -2,13 +2,14 @@ import csv
 from numpy import random
 import os
 
-labelPool = {}
+labelPoolData = {}
+labelPoolText = {}
 
 PC = "0"*32
 
 encodedCode = ""
-dataSectionencoded = ""
-textSectionencoded = ""
+dataSectionEncoded = ""
+textSectionEncoded = ""
 
 class handleTextSection:
 
@@ -135,7 +136,7 @@ class handleTextSection:
         address = ""
         label = ""
         if not addr_type:
-            address = labelPool.get(rs, None) # 16-bit address, default None
+            address = labelPoolText.get(rs, None) # 16-bit address, default None
             label = rs
             rs = "00000"
         else:
@@ -164,13 +165,13 @@ class handleTextSection:
         opCode = handleTextSection.__instructionOpCode["beq"]
         rs = handleTextSection.__encodeRegister(rs)
         rt = handleTextSection.__encodeRegister(rt)
-        address = labelPool.get(label, None)        # depends on how data section is to handled
+        address = labelPoolText.get(label, None)        # depends on how data section is to handled
 
         return opCode + rs + rt + address
 
     def __handleJumpType(label):
         opCode = handleTextSection.__instructionOpCode["j"]
-        address = labelPool.get(label, None)        # depends on how data section is to handled
+        address = labelPoolText.get(label, None)        # depends on how data section is to handled
         
         return opCode + address
     
@@ -186,7 +187,7 @@ class handleDataSection:
         label = line[0].replace(':','')
         value = int(line[2])
 
-        if label in labelPool.keys():
+        if label in labelPoolData.keys():
             os.remove('./data_memory.txt')
             return "Can not redefine " + label
         
@@ -198,13 +199,13 @@ class handleDataSection:
         try:
 
             value = format(value,'032b')
-            address = random.randint(0,2**30)
+            address = random.randint(0,2**31-1)
             address = format(address,'032b')
 
             with open('data_memory.txt','a') as file:
                 file.write(address+" "+value+'\n')
             
-            labelPool[label] = value
+            labelPoolData[label] = address
             return 1
         
         except:
@@ -245,10 +246,11 @@ with open('./test.mips','r') as file:
 
             if message != 1:
                  print("Error at line " + str(linenumber+1) + " " + message)
+            
         
         else:
             encodedInstruction = handleTextSection.encodeInstruction(line)
             if len(encodedInstruction) != 32:
                 print("Error at line " + str(linenumber+1) + " " + encodedInstruction)
             else:
-                textSectionencoded += encodedInstruction
+                textSectionEncoded += encodedInstruction

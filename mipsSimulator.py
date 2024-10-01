@@ -1,4 +1,9 @@
-import functionalUnits as fu
+import functionalUnits as FU
+from functionalUnits import ALU
 
-instructionMemory = fu.InstructionMemory()
-dataMemory = fu.dataMemory()
+instructionMemory = FU.InstructionMemory()
+dataMemory = FU.dataMemory()
+registerFile = FU.registerFile()
+programCounter = FU.programCounter()
+aluControlUnit = FU.AluControl()
+
