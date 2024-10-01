@@ -2,7 +2,6 @@ import csv
 
 '''
 4. ALU
-6. Control Unit
 7. ALU Control
 '''
 
@@ -77,13 +76,169 @@ class otherUnits:
 class registerFile:
 
     def __init__(self):
-        pass
+        self.__registers = {}
 
     def readData(self,registerAddress):
-        pass
+        try:
+            return self.__registers[registerAddress]
+        except:
+            return -1
 
-    def writeData(self,registerAddress,writeValue):
-        pass
+    def writeData(self,registerAddress,writeValue,controlUnit):
+        if controlUnit.regWrite == "1":
+            self.__registers[registerAddress] = writeValue
+        else:
+            return -1
+
+
+class controlUnit:
+
+    def __init__(self):
+        self.memWrite = "0"
+        self.memRead = "0"
+        self.memToReg = "0"
+
+        self.regWrite = "0"
+        self.regDst = "0"
+
+        self.AluOp = "00"
+        self.AluSrc = "0"
+        
+        self.jump = "0"
+        self.branch = "0"
+    
+    def setControlSignals(self,opCode,functionMode):
+
+        if opCode == "000000":
+
+            self.regDst = "1"
+            self.regWrite = "1"
+            self.AluSrc = "0"
+            self.memWrite = "0"
+            self.memRead = "0"
+            self.memToReg = "0"
+            self.branch = "0"
+            self.jump = "0"
+            self.AluOp = "10"
+        
+        elif opCode == "000100":
+
+            self.regDst = "0"
+            self.regWrite = "0"
+            self.AluSrc = "0"
+            self.memWrite = "0"
+            self.memRead = "0"
+            self.memToReg = "0"
+            self.branch = "1"
+            self.jump = "0"
+            self.AluOp = "01"
+        
+        elif opCode == "000010":
+
+            self.regDst = "0"
+            self.regWrite = "0"
+            self.AluSrc = "0"
+            self.memWrite = "0"
+            self.memRead = "0"
+            self.memToReg = "0"
+            self.branch = "0"
+            self.jump = "1"
+            self.AluOp = "11"
+        
+        elif opCode == "100011":
+
+            self.regDst = "0"
+            self.regWrite = "1"
+            self.AluSrc = "1"
+            self.memWrite = "0"
+            self.memRead = "1"
+            self.memToReg = "1"
+            self.branch = "0"
+            self.jump = "0"
+            self.AluOp = "00"
+        
+        elif opCode == "101011":
+
+            self.regDst = "0"
+            self.regWrite = "0"
+            self.AluSrc = "1"
+            self.memWrite = "1"
+            self.memRead = "0"
+            self.memToReg = "0"
+            self.branch = "0"
+            self.jump = "0"
+            self.AluOp = "00"
+        
+        elif opCode == "001000":
+
+            self.regDst = "0"
+            self.regWrite = "1"
+            self.AluSrc = "1"
+            self.memWrite = "0"
+            self.memRead = "0"
+            self.memToReg = "0"
+            self.branch = "0"
+            self.jump = "0"
+            self.AluOp = "00"
+
+
+class AluControl:
+
+    def __init__(self):
+        self.signal = "0000"
+    
+    def setSignal(self,AluOp,functionMode):
+        # lw,sw,addi
+        if AluOp == "00":
+            self.signal = "0010"
+        
+        # beq
+        elif AluOp == "01":
+            self.signal = "0110"
+        
+        elif AluOp == "10":
+            # add
+            if functionMode == "100000":
+                self.signal = "0010"
+            # sub
+            elif functionMode == "100010":
+                self.signal = "0110"
+            # and
+            elif functionMode == "100100":
+                self.signal = "0000"
+            #or
+            elif functionMode == "100101":
+                self.signal = "0001"
+            # slt
+            elif functionMode == "101010":
+                self.signal = "0111"
+        else:
+            self.signal = "0000"
+        
+
+class ALU:
+
+    def performOperation(AluSignal,operand1,operand2):
+
+        if AluSignal == "0010":
+
+            return format(int(operand1,2)+int(operand2,2),'032b')
+        
+        elif AluSignal == "0110":
+            return format(int(operand1,2)-int(operand2,2),'032b')
+        
+        elif AluSignal == "0000":
+            return format(int(operand1,2) & int(operand2,2),'032b')
+        
+        elif AluSignal == "0001":
+            return format(int(operand1,2) | int(operand2,2),'032b')
+        
+        elif AluSignal == "0111":
+
+            if int(operand1,2) >= int(operand2,2):
+                return format(0,'032b')
+            else:
+                return format(1,'032b')  
 
 
 class dataMemory:
