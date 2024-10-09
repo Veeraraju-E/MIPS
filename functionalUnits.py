@@ -65,6 +65,7 @@ class otherUnits:
         return PC[:3]+sequence
     
     def getBranchAddress(offset,PC):
+        print(offset)
         offset = int(offset,2)
         PC = int(PC,2)
         return offset+PC

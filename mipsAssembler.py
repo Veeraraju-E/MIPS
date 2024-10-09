@@ -4,6 +4,8 @@ import os
 
 labelPoolData = {}
 labelPoolText = {}
+unhandledBranchLabels = {}
+unhandledJumpLabels = {}
 
 PC = "0"*32
 
@@ -81,7 +83,8 @@ class handleTextSection:
 
     def encodeInstruction(line):
         try:
-            print(line)
+            #print(line)
+
             instructionType = handleTextSection.__instructionType[line[0]]
             if instructionType == "R":
                 return handleTextSection.__handleRType(line[0],line[2].replace(',',''),line[3].replace(',',''),line[1].replace(',',''))
@@ -113,9 +116,9 @@ class handleTextSection:
         rd = handleTextSection.__encodeRegister(rd)
 
         if rs == -1 or rt == -1 or rd == -1:
-            return "One of the registers is invalid"
+            return "One of the registers is invalid",True
         
-        return opCode+rs+rt+rd+"00000"+functionMode
+        return opCode+rs+rt+rd+"00000"+functionMode,True
 
     def __handleIType(mnemonic,rs,rt, addr_type):
         """
@@ -167,19 +170,27 @@ class handleTextSection:
         rs = handleTextSection.__encodeRegister(rs)
         rt = handleTextSection.__encodeRegister(rt)
 
-        if not labelPoolData.get(label):
-            return -1   # label DNE
-        
-        address = labelPoolText.get(label)  # 16-bit address, default 16-bit 0s
-        return opCode + rs + rt + address
+        if (labelPoolData.get(label)):
+            return -1
 
+        unhandledBranchLabels[label] = PC
+        return opCode+rs+rt+label,False
+        
     def __handleJumpType(label):
         opCode = handleTextSection.__instructionOpCode["j"]
-        if not labelPoolData.get(label):
+        if (labelPoolData.get(label)):
             return -1   # label DNE
         
-        address = labelPoolText.get(label)  # 16-bit address, default 16-bit 0s
-        return opCode + address
+        unhandledJumpLabels[label] = PC
+        return opCode+label,False
+    
+    def handleLabel(label):
+
+        if label in labelPoolText.keys():
+            return "Can not redefine "+label
+        
+        labelPoolText[label] = PC
+        return 1
     
 
 class handleDataSection:
@@ -222,6 +233,7 @@ with open('./test.mips','r') as file:
 
     mipsCode = csv.reader(file,delimiter=' ')
     dataSectionEncountered = False
+    errorEncountered = False
 
     try:
         if os.path.exists('./data_memory.txt'):
@@ -235,6 +247,8 @@ with open('./test.mips','r') as file:
         for i in range(emptyStringCount):
             line.remove('')
 
+        print(PC)
+
         if len(line) == 0:
             continue
 
@@ -244,23 +258,56 @@ with open('./test.mips','r') as file:
         elif len(line) == 1 and line[0] == '.text':
             dataSectionEncountered = False
 
-        elif len(line) == 1 and line[0].count(':') == 0:
+        elif len(line) == 1 and line[0].endswith(':') == False:
+            errorEncountered = True
             print("Error at line " + str(linenumber+1))
-
-        elif dataSectionEncountered == True:
-            message=handleDataSection.encodeVariable(line)
+            break
+        
+        elif len(line) == 1 and dataSectionEncountered == False and line[0].endswith(':') == True:
+            message = handleTextSection.handleLabel(line[0].replace(":",''))
 
             if message != 1:
+                errorEncountered = True
+                print("Error at line "+ str(linenumber+1)+ " " + message)
+                break
+
+        elif dataSectionEncountered == True:
+            message = handleDataSection.encodeVariable(line)
+
+            if message != 1:
+                 errorEncountered = True
                  print("Error at line " + str(linenumber+1) + " " + message)
+                 break
             
-        
         else:
-            encodedInstruction = handleTextSection.encodeInstruction(line)
-            if len(encodedInstruction) != 32:
+            encodedInstruction,notBranchOrJump = handleTextSection.encodeInstruction(line)
+            PC = format(int(PC,2)+4,'032b')
+            if len(encodedInstruction) != 32 and notBranchOrJump:
+                errorEncountered = True
                 print("Error at line " + str(linenumber+1) + " " + encodedInstruction)
+                break
             else:
                 machineCode+= encodedInstruction
+    
+    if errorEncountered == False:
+        for key in unhandledBranchLabels.keys():
 
-with open("assembled_code.mips","w") as file:
+            address = labelPoolText[key]
+            PCWhenCalled = unhandledBranchLabels[key]
+            
+            offset = format(int(address,2)-int(PCWhenCalled,2),'032b')[16:]
+            
+            machineCode = machineCode.replace(key,offset) 
 
-    file.write(machineCode)
+        for key in unhandledJumpLabels.keys():
+
+            address = labelPoolText[key]
+            removePCConcat = address[4:]
+            jumpAddress = removePCConcat[:26]
+
+            machineCode = machineCode.replace(key,jumpAddress)
+
+
+        with open("assembled_code.mips","w") as file:
+
+            file.write(machineCode)
