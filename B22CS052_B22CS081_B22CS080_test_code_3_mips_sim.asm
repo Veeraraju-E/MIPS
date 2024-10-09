@@ -12,4 +12,3 @@
 equal:
     addi $t2, $zero, 1
 end:
-    j end

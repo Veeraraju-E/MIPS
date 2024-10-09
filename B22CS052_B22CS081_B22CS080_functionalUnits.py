@@ -288,7 +288,7 @@ class ALU:
         elif AluSignal == "0111":
             return format(1,'032b') if int(operand1,2)-int(operand2,2) < 0 else format(0,'032b'),"1" if int(operand1,2)-int(operand2,2) == 0 else "0"
         else:
-            print("Hello")
+            return -1
 
 class dataMemory:
 
@@ -307,8 +307,6 @@ class dataMemory:
             return -1
 
     def writeMemory(self,address,writeValue,isStaticBinding,controlUnit):
-
-        print(address,writeValue)
         
         if isStaticBinding:
             self.dataMem[address] = writeValue

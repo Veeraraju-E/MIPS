@@ -54,12 +54,16 @@ class simulator:
         noOfInstructions,finalPC = self.__allocateMemoryInstruction("assembled_code.mips")
         #print(finalPC)
 
-        for i in range(0,noOfInstructions):
+        while(1):
 
             
             instruction = self.instructionMemory.getInstruction(self.programCounter.getCurrentAddress())
+
+
             if self.programCounter.getCurrentAddress() == finalPC and len(instruction) != 32:
                 break
+
+            #print(self.programCounter.getCurrentAddress())
 
             # lw instruction, so store the value in $at and data memory
             if instruction[:6] == "100011":
@@ -106,10 +110,10 @@ class simulator:
             self.programCounter.setCurrentAddress(branchAddress,jumpAddress,self.controlUnit,zero)
             #self.registerFile.printAllRegisters()
         
-        try:
-            os.remove('./data_memory.txt')
-        except:
-            return 0
+        # try:
+        #     os.remove('./data_memory.txt')
+        # except:
+        #     return 0
 
 
 sim = simulator()
