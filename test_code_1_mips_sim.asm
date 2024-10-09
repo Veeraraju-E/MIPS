@@ -9,4 +9,4 @@
     and $t4, $t0, $t1
     or  $t5, $t0, $t1
     slt $t6, $t0, $t1
-    sw  $t6, num1
+
