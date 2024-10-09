@@ -12,6 +12,9 @@ PC = "0"*32
 machineCode = ""
 
 class handleTextSection:
+    """
+    This section handles the text section
+    """
 
     __registerAddressMap = {
         "$zero":"00000",
@@ -70,6 +73,7 @@ class handleTextSection:
     }
 
     __instructionType = {
+        "addi":"AI",
         "add":"R",
         "sub":"R",
         "and":"R",
@@ -84,22 +88,32 @@ class handleTextSection:
     def encodeInstruction(line):
         try:
             #print(line)
-
             instructionType = handleTextSection.__instructionType[line[0]]
+            #print(instructionType)
             if instructionType == "R":
                 return handleTextSection.__handleRType(line[0],line[2].replace(',',''),line[3].replace(',',''),line[1].replace(',',''))
             elif instructionType == "I":
-                # lw and sw only , line = ['lw', '$t2,', 'num'] or line = ['lw', '$t2,', '100($t0)']
                 addr_type = 0
-                if '$' in line[2]:  # stronger condition?
+                if '$' in line[2]:
                     addr_type = 1
                 return handleTextSection.__handleIType(line[0], line[2], line[1].replace(',',''), addr_type)
             elif instructionType == "B":
                 return handleTextSection.__handleBranchType(line[1].replace(',',''), line[2].replace(',',''), line[3])
             elif instructionType == "J":
                 return handleTextSection.__handleJumpType(line[1])
+            elif instructionType == "AI":
+                #print("Hello")
+                return handleTextSection.__handleAddi(line[0],line[2].replace(',',''),line[1].replace(',',''),line[3])
         except:
-            return "Invalid Instruction"
+            return "Invalid Instruction",True
+        
+    def __handleAddi(mnemonic,rs,rt,constant):
+
+        opCode = handleTextSection.__instructionOpCode[mnemonic]
+        constant = format(int(constant),'016b')
+        rs,rt = handleTextSection.__encodeRegister(rs),handleTextSection.__encodeRegister(rt)
+
+        return opCode+rs+rt+constant,True
     
     def __encodeRegister(register):
         try:
@@ -137,12 +151,18 @@ class handleTextSection:
         address = ""
         label = ""
         if not addr_type:
-            if not labelPoolText.get(rs):
+            if not labelPoolData.get(rs):
                 return -1   # label DNE
             
-            address = labelPoolText.get(rs)
             label = rs
-            rs = "00000"
+            address,value = labelPoolData.get(label)
+            rs = "00001"
+
+            with open("data_memory.txt","a") as file:
+                file.write(address+" "+value+" "+PC+"\n")
+            
+            return opCode+ rs + rt + format(0,'016b'),True
+
         else:
             rs = rs.replace('(',',').replace(')','')
             rs = rs.split(',')
@@ -184,6 +204,8 @@ class handleTextSection:
         unhandledJumpLabels[label] = PC
         return opCode+label,False
     
+    
+    
     def handleLabel(label):
 
         if label in labelPoolText.keys():
@@ -192,7 +214,6 @@ class handleTextSection:
         labelPoolText[label] = PC
         return 1
     
-
 class handleDataSection:
 
     def encodeVariable(line):
@@ -218,11 +239,8 @@ class handleDataSection:
             value = format(value,'032b')
             address = random.randint(0,2**31-1)
             address = format(address,'032b')
-
-            with open('data_memory.txt','a') as file:
-                file.write(address+" "+value+'\n')
             
-            labelPoolData[label] = address
+            labelPoolData[label] = [address,value]
             return 1
         
         except:
@@ -246,8 +264,6 @@ with open('./test.mips','r') as file:
         emptyStringCount = line.count('')
         for i in range(emptyStringCount):
             line.remove('')
-
-        print(PC)
 
         if len(line) == 0:
             continue
@@ -282,6 +298,7 @@ with open('./test.mips','r') as file:
         else:
             encodedInstruction,notBranchOrJump = handleTextSection.encodeInstruction(line)
             PC = format(int(PC,2)+4,'032b')
+            
             if len(encodedInstruction) != 32 and notBranchOrJump:
                 errorEncountered = True
                 print("Error at line " + str(linenumber+1) + " " + encodedInstruction)
@@ -290,24 +307,40 @@ with open('./test.mips','r') as file:
                 machineCode+= encodedInstruction
     
     if errorEncountered == False:
+
         for key in unhandledBranchLabels.keys():
 
-            address = labelPoolText[key]
-            PCWhenCalled = unhandledBranchLabels[key]
-            
-            offset = format(int(address,2)-int(PCWhenCalled,2),'032b')[16:]
-            
-            machineCode = machineCode.replace(key,offset) 
+            try:
+
+                address = labelPoolText[key]
+                PCWhenCalled = unhandledBranchLabels[key]
+                
+                offset = format(int(address,2)-(int(PCWhenCalled,2)+4),'032b')[16:]
+
+                machineCode = machineCode.replace(key,offset)
+            except:
+                errorEncountered = True
+                print("No label named ",key)
+                break
+        
+    if errorEncountered == False:
 
         for key in unhandledJumpLabels.keys():
+            try:
+                address = labelPoolText[key]
+                removePCConcat = address[4:]
+                jumpAddress = removePCConcat[:26]
 
-            address = labelPoolText[key]
-            removePCConcat = address[4:]
-            jumpAddress = removePCConcat[:26]
+                machineCode = machineCode.replace(key,jumpAddress)
+            except:
+                errorEncountered = True
+                print("No label named ",key)
+                break
+        
+        
+        if errorEncountered == False:
 
-            machineCode = machineCode.replace(key,jumpAddress)
+            with open("assembled_code.mips","w") as file:
 
-
-        with open("assembled_code.mips","w") as file:
-
-            file.write(machineCode)
+                file.write(machineCode)
+                print("The code is assembled at the file named assembled_code.mips.\nA data_memory.txt file is created to handle the .data section. Do Not Delete it!\n")
