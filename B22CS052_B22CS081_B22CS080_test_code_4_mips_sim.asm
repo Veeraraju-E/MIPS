@@ -13,4 +13,3 @@
 set_num2:
     add $t3, $t1, $zero
 end:
-    j end

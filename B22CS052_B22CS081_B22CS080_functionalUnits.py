@@ -23,7 +23,7 @@ class InstructionMemory:
         self.instructionMem[address] = instruction
     
     def getInstruction(self,address):
-
+        #print(address)
         try:
             return self.instructionMem[address]
         except:
@@ -39,6 +39,7 @@ class programCounter:
         return self.__currentAddress
     
     def setCurrentAddress(self,branchAddress,jumpAddress,controlUnit,zero):
+        #print(branchAddress)
         self.__currentAddress = self.__currentAddress if (int(controlUnit.branch) & int(zero) == 0) else branchAddress
         self.__currentAddress = self.__currentAddress if controlUnit.jump == "0" else jumpAddress 
     
@@ -62,16 +63,14 @@ class otherUnits:
         return sequence+"00"
     
     def concatPCAddress(sequence,PC):
-        return PC[:3]+sequence
+        return PC[:4]+sequence
     
     def getBranchAddress(offset,PC):
-        print(offset)
+        
         offset = int(offset,2)
         PC = int(PC,2)
-        return offset+PC
+        return format(offset+PC,'032b')
     
-    
-
 class registerFile:
 
     def __init__(self):
@@ -114,8 +113,8 @@ class registerFile:
     }
         for i in range(32):
             self.__registers[format(i,'05b')] = format(0,'032b')
-        self.__registers[format(8,'05b')] = format(10,'032b')
-        self.__registers[format(9,'05b')] = format(20,'032b')
+        # self.__registers[format(8,'05b')] = format(10,'032b')
+        # self.__registers[format(9,'05b')] = format(20,'032b')
 
     def printAllRegisters(self):
 
@@ -126,13 +125,16 @@ class registerFile:
         
 
     def readData(self,registerAddress1,registerAddress2):
+        
         try:
             return self.__registers[registerAddress1],self.__registers[registerAddress2]
         except:
             return -1,-1
 
-    def writeData(self,registerAddress,writeValue,controlUnit):
-        if controlUnit.regWrite == "1":
+    def writeData(self,registerAddress,writeValue,controlUnit,isStaticBinding):
+        if isStaticBinding == True:
+            self.__registers[registerAddress] = writeValue
+        elif controlUnit.regWrite == "1":
             self.__registers[registerAddress] = writeValue
         else:
             return ["-1","-1"]
@@ -155,6 +157,7 @@ class controlUnit:
     
     def setControlSignals(self,opCode):
 
+        # R type
         if opCode == "000000":
 
             self.regDst = "1"
@@ -167,6 +170,7 @@ class controlUnit:
             self.jump = "0"
             self.AluOp = "10"
         
+        # beq
         elif opCode == "000100":
 
             self.regDst = "0"
@@ -179,6 +183,7 @@ class controlUnit:
             self.jump = "0"
             self.AluOp = "01"
         
+        # j
         elif opCode == "000010":
 
             self.regDst = "0"
@@ -191,6 +196,7 @@ class controlUnit:
             self.jump = "1"
             self.AluOp = "11"
         
+        # lw
         elif opCode == "100011":
 
             self.regDst = "0"
@@ -203,6 +209,7 @@ class controlUnit:
             self.jump = "0"
             self.AluOp = "00"
         
+        # sw
         elif opCode == "101011":
 
             self.regDst = "0"
@@ -270,7 +277,6 @@ class ALU:
             return format(int(operand1,2) + int(operand2,2),'032b'),"1" if int(operand1,2)-int(operand2,2) == 0 else "0"
         
         elif AluSignal == "0110":
-            print(int(operand1,2) , int(operand2,2))
             return format(int(operand1,2) - int(operand2,2),'032b'),"1" if int(operand1,2)-int(operand2,2) == 0 else "0"
         
         elif AluSignal == "0000":
@@ -282,7 +288,7 @@ class ALU:
         elif AluSignal == "0111":
             return format(1,'032b') if int(operand1,2)-int(operand2,2) < 0 else format(0,'032b'),"1" if int(operand1,2)-int(operand2,2) == 0 else "0"
         else:
-            print("Hello")
+            return -1
 
 class dataMemory:
 
