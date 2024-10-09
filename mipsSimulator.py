@@ -63,9 +63,11 @@ class simulator:
 
             self.controlUnit.setControlSignals(instruction[:6])
 
+            # Branch Address calculation
             signExtended = otherUnits.signExtend(instruction[16:])
             branchAddress = otherUnits.getBranchAddress(signExtended,self.programCounter.getCurrentAddress())
 
+            # Jump address Calculation
             leftShiftBy2 = otherUnits.leftShiftForJump(instruction[6:])
             jumpAddress = otherUnits.concatPCAddress(leftShiftBy2,self.programCounter.getCurrentAddress())
 
@@ -77,7 +79,6 @@ class simulator:
             self.aluControlUnit.setSignal(self.controlUnit.AluOp,instruction[26:])
             result,zero = ALU.performOperation(self.aluControlUnit.signal,readData1,readData2)
             
-
             readData = self.dataMemory.readMemory(result,self.controlUnit)
 
             writeData = result if self.controlUnit.memToReg == "0" else readData
